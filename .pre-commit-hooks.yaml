@@ -1,0 +1,6 @@
+-   id: alpha-json
+    name: alpha json5
+    description: alphabetizing json
+    entry: alpha-json
+    language: python
+    types: [json]
