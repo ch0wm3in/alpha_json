@@ -18,23 +18,25 @@ class Sorter(object):
 def _get_pretty_format(
         contents: str,
         indent: str,
-        ensure_ascii: bool = True,
-        sort_keys: bool = True,
-        top_keys: Sequence[str] = (),
+        alpha_key: str
+        
 ) -> str:
-    def pairs_first(pairs: Sequence[tuple[str, str]]) -> Mapping[str, str]:
-        before = [pair for pair in pairs if pair[0] in top_keys]
-        before = sorted(before, key=lambda x: top_keys.index(x[0]))
-        after = [pair for pair in pairs if pair[0] not in top_keys]
-        if sort_keys:
-            sorter = Sorter()
-            after.sort()
-            after = sorter.sort_by_key(after, "name")
-        return dict(before + after)
+    
+    sorter = Sorter()
+    
+    contents = json.loads(contents)
+
+    try:
+        contents = sorter.sort_by_key(contents, alpha_key)
+    except Exception:
+        pass
+    contents = json.dumps(contents, indent=indent, ensure_ascii=False)
+
+    
     json_pretty = json.dumps(
-        json.loads(contents, object_pairs_hook=pairs_first),
+        json.loads(contents),
         indent=indent,
-        ensure_ascii=ensure_ascii,
+        ensure_ascii=False,
     )
     return f'{json_pretty}\n'
 
@@ -81,30 +83,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             ' for indentation level e.g. 4 or "\t" (Default: 2)'
         ),
     )
+
     parser.add_argument(
-        '--no-ensure-ascii',
-        action='store_true',
-        dest='no_ensure_ascii',
-        default=False,
+        '--alphakey',
+        type=str,
+        default='',
         help=(
-            'Do NOT convert non-ASCII characters to Unicode escape sequences '
-            '(\\uXXXX)'
+            'Key to alpha sort on (Default:)'
         ),
     )
-    parser.add_argument(
-        '--no-sort-keys',
-        action='store_true',
-        dest='no_sort_keys',
-        default=False,
-        help='Keep JSON nodes in the same order',
-    )
-    parser.add_argument(
-        '--top-keys',
-        type=parse_topkeys,
-        dest='top_keys',
-        default=[],
-        help='Ordered list of keys to keep at the top of JSON hashes',
-    )
+    
+    
     parser.add_argument('filenames', nargs='*', help='Filenames to fix')
     args = parser.parse_args(argv)
 
@@ -116,8 +105,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         try:
             pretty_contents = _get_pretty_format(
-                contents, args.indent, ensure_ascii=not args.no_ensure_ascii,
-                sort_keys=not args.no_sort_keys, top_keys=args.top_keys,
+                contents, args.indent, args.alphakey
             )
         except ValueError:
             print(
